@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>حاسبة الادخار</title>
 <meta name="theme-color" content="#0f1226">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
 <script>(function(){var m='dark',p='orig';try{m=localStorage.getItem('sv_mode')||m;p=localStorage.getItem('sv_pal')||p}catch(e){}
 document.documentElement.dataset.m=m;document.documentElement.dataset.p=p})()</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,6 +29,21 @@ document.documentElement.dataset.m=m;document.documentElement.dataset.p=p})()</s
 [data-m=light][data-p=women]{--bg:#fff1f7;--card:#fff;--card2:#fde4ef;--barbg:rgba(255,241,247,.88)}
 [data-m=light]{--txt:#1e1b3a;--mut:#6f6b8f}
 [data-m=light] .card,[data-m=light] .item,[data-m=light] .sum{box-shadow:0 2px 12px rgba(60,40,120,.08)}
+.btn.alt{color:var(--txt)}
+input::placeholder{color:var(--mut);opacity:.8}
+[data-m=dark]{color-scheme:dark}[data-m=light]{color-scheme:light}
+[data-m=light] .card .v,[data-m=light] .sum b{color:color-mix(in srgb,var(--k,var(--b)) 68%,#000)}
+[data-m=light] .card.static .v{color:var(--txt)}
+[data-m=light] .seg button.on,[data-m=light] .btn{color:#fff}
+[data-m=light] .btn.alt{color:var(--txt)}
+[data-m=light] #reset{color:#c2185b}
+.toast.act{pointer-events:auto}
+.toast button{background:var(--a);color:#fff;border:0;border-radius:20px;padding:5px 14px;font:inherit;font-weight:700;margin-inline-start:10px;cursor:pointer}
+.mon{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 4px;font-weight:800;font-size:16px}
+.mon b{color:var(--b);font-size:15px}
+[data-m=light] .mon b{color:color-mix(in srgb,var(--b) 68%,#000)}
+.item{cursor:pointer}.item .n{font-size:12px;color:var(--c);margin-top:2px}.item .ed{color:var(--mut);font-size:16px}
+.two.wrap{flex-wrap:wrap}.two.wrap div{min-width:calc(50% - 5px)}
 .pals{display:flex;gap:8px}
 .pals button{flex:1;border:3px solid transparent;border-radius:14px;padding:12px 4px;color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .pals button.on{border-color:var(--txt)}
@@ -108,6 +126,10 @@ input:focus{outline:0;border-color:var(--a)}
     <div class="card wide" style="--k:var(--b)" data-t="all"><div class="t">📊 الإجمالي</div>
       <div class="two"><div><span>بدون المبلغ السابق</span><b id="tot"></b></div><div><span>مع المبلغ السابق</span><b id="totp"></b></div></div>
     </div>
+    <div class="card static wide" style="--k:var(--c)"><div class="t">📈 الإحصائيات</div>
+      <div class="two"><div><span>متوسط الادخار اليومي</span><b id="stAvg"></b></div><div><span>هذا الشهر</span><b id="stMon"></b></div></div>
+      <div class="two"><div><span>التاريخ المتوقع لبلوغ الهدف</span><b id="stEta" style="font-size:16px"></b></div></div>
+    </div>
   </div>
 </div>
 <button class="fab" id="add">+</button>
@@ -120,8 +142,21 @@ input:focus{outline:0;border-color:var(--a)}
   <label>أو أدخل مبلغًا يدويًا</label>
   <input id="man" type="number" inputmode="decimal" placeholder="المبلغ">
   <label>التاريخ</label><input type="date" id="dt">
+  <label>ملاحظة (اختياري)</label><input id="note" placeholder="مثال: راتب، مكافأة">
   <button class="btn" id="doAdd">إضافة</button>
   <button class="btn alt" id="addClose">إغلاق</button>
+</div></div>
+
+<!-- edit sheet -->
+<div class="sheet-bg" id="edBg"><div class="sheet">
+  <h2>تعديل المبلغ</h2>
+  <div class="seg" id="edType"><button data-v="net">💳 شبكة</button><button data-v="cash">💵 كاش</button></div>
+  <label>المبلغ</label><input id="edAmt" type="number" inputmode="decimal">
+  <label>التاريخ</label><input id="edDt" type="date">
+  <label>ملاحظة</label><input id="edNote">
+  <button class="btn" id="edSave">حفظ التعديل</button>
+  <button class="btn alt" id="edDel" style="color:var(--d)">🗑 حذف</button>
+  <button class="btn alt" id="edClose">إغلاق</button>
 </div></div>
 
 <!-- settings sheet -->
@@ -138,9 +173,10 @@ input:focus{outline:0;border-color:var(--a)}
   <label>مبلغ الهدف (ريال)</label><input id="sGoal" type="number" inputmode="decimal">
   <label>الموجود سابقًا قبل تاريخ بدء الادخار (ريال)</label><input id="sPrev" type="number" inputmode="decimal">
   <button class="btn" id="sSave">حفظ</button>
-  <button class="btn alt" id="exp">⬇️ تصدير البيانات (JSON)</button>
-  <button class="btn alt" id="impBtn">⬆️ استعادة من ملف JSON</button>
-  <input type="file" id="impFile" accept=".json,application/json" hidden>
+  <button class="btn alt" id="inst" style="display:none">📲 تثبيت التطبيق على الجهاز</button>
+  <button class="btn alt" id="exp">⬇️ تصدير البيانات</button>
+  <button class="btn alt" id="impBtn">⬆️ استعادة البيانات</button>
+  <input type="file" id="impFile" hidden>
   <button class="btn alt" id="reset" style="color:var(--d)">🗑 تصفير جميع البيانات</button>
   <button class="btn alt" id="setClose">إغلاق</button>
 </div></div>
@@ -163,7 +199,15 @@ let db,curType='net',view='all',sel=null;
 /* ---------- SQLite (sql.js) ---------- */
 const b64=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-function persist(){try{localStorage.setItem('savings_db',b64(db.export()))}catch(e){}}
+let warned=false;
+function persist(){
+  try{localStorage.setItem('savings_db',b64(db.export()));
+      if(localStorage.getItem('savings_db')===null)throw 0;return true}
+  catch(e){if(!warned){warned=true;toast('⚠️ تعذّر حفظ البيانات في المتصفح، صدّر نسخة احتياطية')}return false}
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&db)persist()});
+window.addEventListener('pagehide',()=>{if(db)persist()});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 async function initDb(){
   const SQL=await initSqlJs({locateFile:f=>'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/'+f});
   let saved=null;try{saved=localStorage.getItem('savings_db')}catch(e){}
@@ -171,6 +215,7 @@ async function initDb(){
   db.run(`CREATE TABLE IF NOT EXISTS entries(id INTEGER PRIMARY KEY AUTOINCREMENT,amount REAL NOT NULL,type TEXT NOT NULL,date TEXT NOT NULL,created INTEGER);
           CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value REAL);`);
   db.run("INSERT OR IGNORE INTO settings VALUES('goal',5000),('prev',0)");
+  if(!q("PRAGMA table_info(entries)").some(c=>c.name==='note'))db.run("ALTER TABLE entries ADD COLUMN note TEXT");
   persist();
 }
 const q=(sql,p=[])=>{const st=db.prepare(sql);st.bind(p);const r=[];while(st.step())r.push(st.getAsObject());st.free();return r};
@@ -178,7 +223,12 @@ const setting=k=>q("SELECT value v FROM settings WHERE key=?",[k])[0]?.v||0;
 const sum=t=>q(t==='all'?"SELECT IFNULL(SUM(amount),0) s FROM entries":"SELECT IFNULL(SUM(amount),0) s FROM entries WHERE type=?",t==='all'?[]:[t])[0].s;
 
 /* ---------- UI ---------- */
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1600)}
+function toast(m){const t=$('#toast');clearTimeout(window._ut);t.classList.remove('act');t.textContent=m;t.classList.add('on');window._ut=setTimeout(()=>t.classList.remove('on'),2200)}
+function undoToast(row){const t=$('#toast');clearTimeout(window._ut);
+  t.innerHTML='تم الحذف <button id="undo">↩ تراجع</button>';t.classList.add('on','act');
+  $('#undo').onclick=()=>{db.run("INSERT INTO entries(id,amount,type,date,note,created) VALUES(?,?,?,?,?,?)",[row.id,row.amount,row.type,row.date,row.note,row.created]);persist();render();t.classList.remove('on','act')};
+  window._ut=setTimeout(()=>t.classList.remove('on','act'),5000)}
+const DF={day:'numeric',month:'long',year:'numeric'},LOC='ar-SA-u-ca-gregory-nu-latn';
 function render(){
   const goal=setting('goal'),prev=setting('prev'),net=sum('net'),cash=sum('cash'),tot=net+cash,all=tot+prev;
   $('#goal').innerHTML=R(goal);$('#prev').innerHTML=R(prev);$('#net').innerHTML=R(net);$('#cash').innerHTML=R(cash);
@@ -186,6 +236,12 @@ function render(){
   const p=goal>0?Math.min(100,all/goal*100):0;
   $('#pb').style.width=p+'%';$('#pct').textContent=fmt(p)+'٪ من الهدف';
   $('#rem').textContent=all>=goal?'🎉 تم تحقيق الهدف':'المتبقي: '+fmt(goal-all)+' ر.س';
+  const first=q("SELECT MIN(date) d FROM entries")[0].d,mon=q("SELECT IFNULL(SUM(amount),0) s FROM entries WHERE date LIKE ?",[today().slice(0,7)+'%'])[0].s;
+  const days=first?Math.max(1,Math.round((new Date(today())-new Date(first))/864e5)+1):1,avg=first?tot/days:0;
+  $('#stAvg').innerHTML=R(avg);$('#stMon').innerHTML=R(mon);
+  if(goal>0&&all>=goal)$('#stEta').textContent='🎉 تحقق الهدف';
+  else if(avg>0){const n=Math.ceil((goal-all)/avg),d=new Date();d.setDate(d.getDate()+n);$('#stEta').textContent=d.toLocaleDateString(LOC,DF)+' (≈ '+fmt(n)+' يوم)'}
+  else $('#stEta').textContent='أضف مبالغ لحساب التوقع';
   if(!$('#page').classList.contains('on'))return;
   renderList();
 }
@@ -195,14 +251,16 @@ function renderList(){
   const rows=q(view==='all'?"SELECT * FROM entries ORDER BY date DESC,id DESC":"SELECT * FROM entries WHERE type=? ORDER BY date DESC,id DESC",view==='all'?[]:[view]);
   $('#pSum').innerHTML=R(sum(view));
   if(!rows.length){$('#list').innerHTML='<div class="empty">لا توجد مبالغ بعد</div>';return}
-  let h='',last='';
-  const dn=d=>new Date(d+'T12:00:00').toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const mt={};rows.forEach(r=>{const k=r.date.slice(0,7);mt[k]=(mt[k]||0)+r.amount});
+  let h='',lastD='',lastM='';
+  const dt=(d,o)=>new Date(d+'T12:00:00').toLocaleDateString(LOC,o);
   for(const r of rows){
-    if(r.date!==last){h+=`<div class="day">${dn(r.date)}</div>`;last=r.date}
+    const m=r.date.slice(0,7);
+    if(m!==lastM){h+=`<div class="mon"><span>${dt(r.date,{month:'long',year:'numeric'})}</span><b>${fmt(mt[m])} ر.س</b></div>`;lastM=m;lastD=''}
+    if(r.date!==lastD){h+=`<div class="day">${dt(r.date,{weekday:'long',day:'numeric',month:'long'})}</div>`;lastD=r.date}
     const n=r.type==='net';
-    h+=`<div class="item"><div class="dot" style="background:color-mix(in srgb,var(${n?'--a':'--c'}) 22%,transparent)">${n?'💳':'💵'}</div>
-    <div class="m"><b>${fmt(r.amount)} ر.س</b><div>${n?'شبكة':'كاش'} • ${r.date}</div></div>
-    <button data-del="${r.id}">🗑</button></div>`;
+    h+=`<div class="item" data-ed="${r.id}"><div class="dot" style="background:color-mix(in srgb,var(${n?'--a':'--c'}) 22%,transparent)">${n?'💳':'💵'}</div>
+    <div class="m"><b>${fmt(r.amount)} ر.س</b><div>${n?'شبكة':'كاش'} • ${r.date}</div>${r.note?`<div class="n">📝 ${String(r.note).replace(/[<>&]/g,'')}</div>`:''}</div><span class="ed">✎</span></div>`;
   }
   $('#list').innerHTML=h;
 }
@@ -215,8 +273,11 @@ function updSel(){
 }
 function addEntry(a){
   a=parseFloat(a);if(!(a>0)){toast('اختر فئة أو أدخل مبلغًا');return false}
-  db.run("INSERT INTO entries(amount,type,date,created) VALUES(?,?,?,?)",[a,curType,$('#dt').value||today(),Date.now()]);
-  persist();render();toast('✓ أُضيف '+fmt(a)+' ر.س');return true;
+  const goal=setting('goal'),prev=setting('prev'),before=goal>0?(sum('all')+prev)/goal*100:0;
+  db.run("INSERT INTO entries(amount,type,date,note,created) VALUES(?,?,?,?,?)",[a,curType,$('#dt').value||today(),$('#note').value.trim(),Date.now()]);
+  persist();render();$('#note').value='';
+  const after=goal>0?(sum('all')+prev)/goal*100:0,ms=[100,75,50,25].find(m=>before<m&&after>=m);
+  toast(ms===100?'🎉 مبارك! تحقق هدفك':ms?'🎉 وصلت إلى '+ms+'٪ من هدفك':'✓ أُضيف '+fmt(a)+' ر.س');return true;
 }
 
 function applyTheme(m,p,save){
@@ -245,8 +306,21 @@ function build(){
     persist();render();close('#setBg');toast('تم الحفظ ✓')};
   document.querySelectorAll('.card[data-t]').forEach(c=>c.onclick=()=>{view=c.dataset.t;open('#page');renderList()});
   $('#back').onclick=()=>close('#page');
-  $('#list').onclick=e=>{const b=e.target.closest('[data-del]');if(!b)return;
-    if(confirm('حذف هذا المبلغ؟')){db.run("DELETE FROM entries WHERE id=?",[b.dataset.del]);persist();render()}};
+  let edId=null,edT='net';
+  const edSeg=()=>document.querySelectorAll('#edType button').forEach(b=>b.classList.toggle('on',b.dataset.v===edT));
+  $('#list').onclick=e=>{const b=e.target.closest('[data-ed]');if(!b)return;
+    const r=q("SELECT * FROM entries WHERE id=?",[b.dataset.ed])[0];if(!r)return;
+    edId=r.id;edT=r.type;$('#edAmt').value=r.amount;$('#edDt').value=r.date;$('#edNote').value=r.note||'';edSeg();open('#edBg')};
+  $('#edType').onclick=e=>{const b=e.target.closest('button');if(b){edT=b.dataset.v;edSeg()}};
+  $('#edClose').onclick=()=>close('#edBg');
+  $('#edBg').onclick=e=>{if(e.target.id==='edBg')close('#edBg')};
+  $('#edSave').onclick=()=>{const a=parseFloat($('#edAmt').value);if(!(a>0))return toast('أدخل مبلغًا صحيحًا');
+    db.run("UPDATE entries SET amount=?,type=?,date=?,note=? WHERE id=?",[a,edT,$('#edDt').value||today(),$('#edNote').value.trim(),edId]);
+    persist();render();close('#edBg');toast('تم حفظ التعديل ✓')};
+  $('#edDel').onclick=()=>{const r=q("SELECT * FROM entries WHERE id=?",[edId])[0];if(!r)return;
+    db.run("DELETE FROM entries WHERE id=?",[edId]);persist();render();close('#edBg');undoToast(r)};
+  let dp=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('#inst').style.display='block'});
+  $('#inst').onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;$('#inst').style.display='none'}};
   [ '#addBg','#setBg' ].forEach(id=>$(id).onclick=e=>{if(e.target.id===id.slice(1))close(id)});
   // تصفير
   $('#reset').onclick=()=>{
@@ -259,10 +333,10 @@ function build(){
   $('#exp').onclick=()=>{
     const data={app:'savings-calculator',version:1,exported:new Date().toISOString(),
       settings:{goal:setting('goal'),prev:setting('prev')},
-      entries:q("SELECT amount,type,date FROM entries ORDER BY date,id")};
+      entries:q("SELECT amount,type,date,note FROM entries ORDER BY date,id")};
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
-    a.download='savings-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();toast('تم التصدير ✓')};
+    a.download='savings-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();try{localStorage.setItem('sv_lastExp',Date.now())}catch(e){}toast('تم التصدير ✓')};
   // استعادة
   $('#impBtn').onclick=()=>$('#impFile').click();
   $('#impFile').onchange=async e=>{
@@ -272,14 +346,16 @@ function build(){
       if(!Array.isArray(d.entries))throw 0;
       if(!confirm('سيتم استبدال البيانات الحالية ('+d.entries.length+' عملية). متابعة؟'))return;
       db.run("DELETE FROM entries");
-      for(const r of d.entries)db.run("INSERT INTO entries(amount,type,date,created) VALUES(?,?,?,?)",[+r.amount,r.type==='cash'?'cash':'net',r.date,Date.now()]);
+      for(const r of d.entries)db.run("INSERT INTO entries(amount,type,date,note,created) VALUES(?,?,?,?,?)",[+r.amount,r.type==='cash'?'cash':'net',r.date,r.note||'',Date.now()]);
       db.run("INSERT OR REPLACE INTO settings VALUES('goal',?),('prev',?)",[+d.settings?.goal||0,+d.settings?.prev||0]);
       persist();render();close('#setBg');toast('تمت الاستعادة ✓');
     }catch(err){toast('ملف غير صالح')}
     e.target.value='';
   };
 }
-initDb().then(()=>{build();render()}).catch(()=>{document.body.innerHTML='<p style="padding:40px;text-align:center">تعذّر تحميل قاعدة البيانات. تحقق من الاتصال بالإنترنت.</p>'});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+initDb().then(()=>{build();render();
+  try{const le=+localStorage.getItem('sv_lastExp')||0;if(sum('all')>0&&Date.now()-le>14*864e5)setTimeout(()=>toast('💾 يُنصح بتصدير نسخة احتياطية من الإعدادات'),1500)}catch(e){}}).catch(()=>{document.body.innerHTML='<p style="padding:40px;text-align:center">تعذّر تحميل قاعدة البيانات. تحقق من الاتصال بالإنترنت.</p>'});
 </script>
 </body>
 </html>
